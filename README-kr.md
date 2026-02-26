@@ -3,6 +3,7 @@
 C++23 기반 MMO 코어 서버 포트폴리오 (`Login + Gateway + Chat + World`)
 
 English version: `README.md`
+에이전트 규칙: `AGENTS.md`
 
 ## 1) 프로젝트 개요
 

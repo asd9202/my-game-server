@@ -3,6 +3,7 @@
 C++23-based MMO core server portfolio (`Login + Gateway + Chat + World`)
 
 Korean version: `README-kr.md`
+Agent rules: `AGENTS.md`
 
 ## 1) Project Overview
 
