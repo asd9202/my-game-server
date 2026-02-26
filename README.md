@@ -57,6 +57,13 @@ Hot path (movement/combat): custom socket + Protobuf
 - Observability: `Prometheus`, `Grafana`
 - Test: `GoogleTest`, bot load generator
 
+## Current Plan Snapshot
+
+- Development order (8 weeks): foundations/contracts -> chat + mongo log v1 -> chat/log hardening -> docker/compose integration -> world MVP -> world core -> kubernetes + observability -> admin page -> load/failure drills + portfolio packaging.
+- Protocol split: external login `HTTPS`, internal control `gRPC + Protobuf`, hot path `custom socket + Protobuf`.
+- Core stack: `C++23`, `Asio`, `Protobuf`, `gRPC`, `MySQL`, `Redis`, `MongoDB`, `Docker`, `Kubernetes`.
+- Admin stack (late phase): backend `NestJS + TypeScript`, frontend `React` (recommended `Next.js + TypeScript`).
+
 ## 5) Run
 
 ### Local (without k8s)
@@ -82,6 +89,8 @@ Hot path (movement/combat): custom socket + Protobuf
 ---
 
 ## 6) 8-Week Execution Plan (Checklist + DoD + KPI)
+
+KPI baseline for Weeks 4-8: dev environment (~100-200 bot CCU, single region). Adjust thresholds if hardware profile changes.
 
 ### Week 1 - Foundation and Contracts
 
@@ -138,7 +147,24 @@ Hot path (movement/combat): custom socket + Protobuf
 
 ---
 
-### Week 4 - World MVP
+### Week 4 - Docker and Compose Integration
+
+- [ ] Create service-level multi-stage Dockerfiles
+- [ ] Build docker-compose stack (MySQL/Redis/Mongo + services)
+- [ ] Add health checks and startup ordering
+
+**DoD**
+
+- [ ] Entire stack starts with one `docker compose up`
+
+**KPI**
+
+- [ ] Warm startup time < 2 min and clean rebuild startup < 8 min
+- [ ] World runtime image target < 350MB
+
+---
+
+### Week 5 - World MVP
 
 - [ ] Implement tick loop
 - [ ] Implement authoritative movement validation
@@ -150,12 +176,12 @@ Hot path (movement/combat): custom socket + Protobuf
 
 **KPI**
 
-- [ ] Tick drift p95 < 5ms (20Hz baseline)
-- [ ] Abnormal movement detection = 100% for test scenarios
+- [ ] Tick drift p95 < 8ms (20Hz, 100 bot baseline)
+- [ ] Abnormal movement detection = 100% for mandatory scenarios (speed, teleport, collision bypass)
 
 ---
 
-### Week 5 - World Core
+### Week 6 - World Core
 
 - [ ] Implement AOI (grid-based)
 - [ ] Implement one authoritative combat/skill path
@@ -168,25 +194,9 @@ Hot path (movement/combat): custom socket + Protobuf
 
 **KPI**
 
-- [ ] State sync latency p95 < 80ms
-- [ ] Reconnect success rate >= 95%
-
----
-
-### Week 6 - Docker and Compose Integration
-
-- [ ] Create service-level multi-stage Dockerfiles
-- [ ] Build docker-compose stack (MySQL/Redis/Mongo + services)
-- [ ] Add health checks and startup ordering
-
-**DoD**
-
-- [ ] Entire stack starts with one `docker compose up`
-
-**KPI**
-
-- [ ] Full startup time < 2 min
-- [ ] World runtime image target < 250MB
+- [ ] State sync latency p95 < 120ms (150 bot baseline)
+- [ ] Reconnect success rate >= 97% (rejoin within 10s)
+- [ ] AOI fanout packet reduction >= 40% vs full-broadcast baseline
 
 ---
 
@@ -203,26 +213,30 @@ Hot path (movement/combat): custom socket + Protobuf
 
 **KPI**
 
-- [ ] At least one core dashboard (tick, p95/p99, CCU, error rate)
-- [ ] Recovery after pod restart <= 30s
+- [ ] Core dashboard online + 4 alert rules (tick drift, error rate, reconnect drop, queue backlog)
+- [ ] Recovery after pod restart <= 60s
+- [ ] 30-min post-rollout soak with zero `CrashLoopBackOff`
 
 ---
 
-### Week 8 - Load, Failure Drills, and Portfolio Packaging
+### Week 8 - Admin Page + Load/Failure + Portfolio Packaging
 
-- [ ] Run bot load tests
-- [ ] Run failure drills (pod kill, DB delay)
-- [ ] Write troubleshooting report
-- [ ] Finalize portfolio docs (README, architecture, sequence)
+- [ ] Implement Admin backend APIs (announcement, moderation, session controls)
+- [ ] Implement Admin frontend screens (React/Next.js) for core operations
+- [ ] Run bot load tests and failure drills (pod kill, DB delay)
+- [ ] Write troubleshooting report and finalize portfolio docs
 
 **DoD**
 
+- [ ] Core admin workflows run end-to-end with role checks
 - [ ] Complete problem-design-validation-results narrative
 
 **KPI**
 
-- [ ] p99 target satisfied at selected CCU
-- [ ] MTTR and reconnect success rate documented
+- [ ] p99 target satisfied at selected CCU (target: 200 CCU <= 180ms on world state sync path)
+- [ ] MTTR <= 90s across planned drill scenarios
+- [ ] Reconnect success >= 95% during failure drills
+- [ ] Admin critical action success rate >= 99% in test scenarios
 
 ---
 
@@ -232,10 +246,10 @@ Hot path (movement/combat): custom socket + Protobuf
 |---|---:|---:|---|
 | Login p95 | < 200ms | - | |
 | Chat loss rate | 0% | - | |
-| Tick drift p95 | < 5ms | - | |
-| World sync p95 | < 80ms | - | |
-| Reconnect success | >= 95% | - | |
-| MTTR | <= 30s | - | |
+| Tick drift p95 | < 8ms | - | |
+| World sync p95 | < 120ms | - | |
+| Reconnect success | >= 97% | - | |
+| MTTR | <= 90s | - | |
 
 ## 8) Failure Drill Checklist
 

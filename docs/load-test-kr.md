@@ -51,10 +51,10 @@
 | 메트릭 | 목표 |
 |---|---:|
 | Login handshake p95 | < 200ms |
-| World sync p95 | < 80ms |
-| Tick drift p95 (20Hz) | < 5ms |
+| World sync p95 | < 120ms (150 CCU 기준) |
+| Tick drift p95 (20Hz) | < 8ms (100 CCU 기준) |
 | 메시지 유실률 | 0% |
-| 재접속 성공률 | >= 95% |
+| 재접속 성공률 | >= 97% |
 | 목표 CCU 에러율 | < 1% |
 
 ## 6) 결과

@@ -100,7 +100,14 @@ Hot path: custom socket + Protobuf
 - 대시보드: Prometheus + Grafana.
 - 로그: 구조화 서비스 로그 + MongoDB 액션 트레일.
 
-## 9) 트레이드오프
+## 9) 현재 계획 스냅샷
+
+- 개발 순서(8주): 기반/계약 정의 -> Chat + Mongo 로그 v1 -> Chat/Log 고도화 -> Docker/Compose 통합 -> World MVP -> World Core -> Kubernetes + 관측 -> 관리자 페이지 -> 부하/장애 훈련 + 포트폴리오 패키징.
+- 프로토콜 분리: 외부 로그인 `HTTPS`, 내부 제어 `gRPC + Protobuf`, 핫패스 `custom socket + Protobuf`.
+- 코어 스택: `C++23`, `Asio`, `Protobuf`, `gRPC`, `MySQL`, `Redis`, `MongoDB`, `Docker`, `Kubernetes`.
+- 관리자 스택(후반): 백엔드 `NestJS + TypeScript`, 프론트엔드 `React` (권장 `Next.js + TypeScript`).
+
+## 10) 트레이드오프
 
 - gRPC만 전면 적용하면 계약 관리는 쉬우나 이동 핫패스에는 비효율적일 수 있다.
 - 커스텀 소켓만 전면 적용하면 제어력은 높지만 운영 복잡도가 커진다.

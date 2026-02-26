@@ -100,7 +100,14 @@ Hot path: custom socket + Protobuf
 - Dashboards: Prometheus + Grafana.
 - Logs: structured service logs and action trail in MongoDB.
 
-## 9) Trade-offs
+## 9) Current Plan Snapshot
+
+- Development order (8 weeks): foundations/contracts -> chat + mongo log v1 -> chat/log hardening -> docker/compose integration -> world MVP -> world core -> kubernetes + observability -> admin page -> load/failure drills + portfolio packaging.
+- Protocol split: external login `HTTPS`, internal control `gRPC + Protobuf`, hot path `custom socket + Protobuf`.
+- Core stack: `C++23`, `Asio`, `Protobuf`, `gRPC`, `MySQL`, `Redis`, `MongoDB`, `Docker`, `Kubernetes`.
+- Admin stack (late phase): backend `NestJS + TypeScript`, frontend `React` (recommended `Next.js + TypeScript`).
+
+## 10) Trade-offs
 
 - Full gRPC everywhere is simpler for contracts but not ideal for hot movement path.
 - Full custom socket everywhere increases control but raises operational complexity.

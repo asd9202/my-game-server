@@ -16,10 +16,10 @@
 
 | Metric | Target |
 |---|---:|
-| MTTR | <= 30s |
+| MTTR | <= 90s |
 | Reconnect success | >= 95% |
 | Data loss (chat/action logs) | 0 in tested window |
-| Tick drift p95 during incident | < 2x baseline |
+| Tick drift p95 during incident | < 2.5x baseline |
 
 ## 4) Drill Scenarios
 

@@ -67,11 +67,11 @@ Example branch names:
 1. Foundations and contracts (`Login/Gateway`, proto, token flow)
 2. Chat + Mongo logging v1
 3. Chat/log hardening (mute/ban, indexes, TTL)
-4. World MVP (tick, movement validation, single zone)
-5. World core (AOI, one combat/skill path, reconnect)
-6. Docker/Compose integration
+4. Docker/Compose integration
+5. World MVP (tick, movement validation, single zone)
+6. World core (AOI, one combat/skill path, reconnect)
 7. Kubernetes + observability
-8. Load/failure drills + portfolio packaging
+8. Admin page + load/failure drills + portfolio packaging
 
 ## 7) Coding and Documentation Standards (Strict)
 

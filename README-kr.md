@@ -57,6 +57,13 @@ Hot path (movement/combat): custom socket + Protobuf
 - 관측: `Prometheus`, `Grafana`
 - 테스트: `GoogleTest`, bot load generator
 
+## 현재 계획 스냅샷
+
+- 개발 순서(8주): 기반/계약 정의 -> Chat + Mongo 로그 v1 -> Chat/Log 고도화 -> Docker/Compose 통합 -> World MVP -> World Core -> Kubernetes + 관측 -> 관리자 페이지 -> 부하/장애 훈련 + 포트폴리오 패키징.
+- 프로토콜 분리: 외부 로그인 `HTTPS`, 내부 제어 `gRPC + Protobuf`, 핫패스 `custom socket + Protobuf`.
+- 코어 스택: `C++23`, `Asio`, `Protobuf`, `gRPC`, `MySQL`, `Redis`, `MongoDB`, `Docker`, `Kubernetes`.
+- 관리자 스택(후반): 백엔드 `NestJS + TypeScript`, 프론트엔드 `React` (권장 `Next.js + TypeScript`).
+
 ## 5) 실행 방법
 
 ### 로컬 (k8s 없이)
@@ -82,6 +89,8 @@ Hot path (movement/combat): custom socket + Protobuf
 ---
 
 ## 6) 8주 실행 계획 (체크리스트 + DoD + KPI)
+
+Week 4-8 KPI 기준 환경: 개발 환경(단일 리전, bot CCU 약 100~200). 장비 스펙이 달라지면 기준치를 비율로 조정한다.
 
 ### Week 1 - 기반/계약 정의
 
@@ -138,7 +147,24 @@ Hot path (movement/combat): custom socket + Protobuf
 
 ---
 
-### Week 4 - World MVP
+### Week 4 - Docker/Compose 통합
+
+- [ ] 서비스별 multi-stage Dockerfile 작성
+- [ ] docker-compose 스택 구성(MySQL/Redis/Mongo + 서비스)
+- [ ] 헬스체크 및 기동 순서 정리
+
+**DoD**
+
+- [ ] `docker compose up` 1회로 전체 스택 기동
+
+**KPI**
+
+- [ ] 웜 스타트 < 2분, 클린 리빌드 기준 전체 기동 < 8분
+- [ ] World runtime 이미지 목표 < 350MB
+
+---
+
+### Week 5 - World MVP
 
 - [ ] tick loop 구현
 - [ ] 권한형 이동 검증 구현
@@ -150,12 +176,12 @@ Hot path (movement/combat): custom socket + Protobuf
 
 **KPI**
 
-- [ ] tick drift p95 < 5ms (20Hz 기준)
-- [ ] 이상 이동 탐지 시나리오 100% 탐지
+- [ ] tick drift p95 < 8ms (20Hz, 100 bot 기준)
+- [ ] 필수 시나리오(속도핵, 텔레포트, 충돌 우회) 100% 탐지
 
 ---
 
-### Week 5 - World Core
+### Week 6 - World Core
 
 - [ ] AOI(그리드) 구현
 - [ ] 권한형 전투/스킬 경로 1개 구현
@@ -168,25 +194,9 @@ Hot path (movement/combat): custom socket + Protobuf
 
 **KPI**
 
-- [ ] 상태 동기화 지연 p95 < 80ms
-- [ ] 재접속 성공률 >= 95%
-
----
-
-### Week 6 - Docker/Compose 통합
-
-- [ ] 서비스별 multi-stage Dockerfile 작성
-- [ ] docker-compose 스택 구성(MySQL/Redis/Mongo + 서비스)
-- [ ] 헬스체크 및 기동 순서 정리
-
-**DoD**
-
-- [ ] `docker compose up` 1회로 전체 스택 기동
-
-**KPI**
-
-- [ ] 전체 기동 시간 < 2분
-- [ ] World runtime 이미지 목표 < 250MB
+- [ ] 상태 동기화 지연 p95 < 120ms (150 bot 기준)
+- [ ] 재접속 성공률 >= 97% (10초 내 재합류)
+- [ ] AOI 적용 시 full-broadcast 대비 fanout 패킷 40% 이상 절감
 
 ---
 
@@ -203,26 +213,30 @@ Hot path (movement/combat): custom socket + Protobuf
 
 **KPI**
 
-- [ ] 핵심 대시보드 1개 이상(tick, p95/p99, CCU, 에러율)
-- [ ] pod 재시작 후 복구 <= 30s
+- [ ] 핵심 대시보드 운영 + 알림 규칙 4개(tick drift, 에러율, 재접속 급락, queue backlog)
+- [ ] pod 재시작 후 복구 <= 60s
+- [ ] 롤아웃 후 30분 soak 동안 `CrashLoopBackOff` 0건
 
 ---
 
-### Week 8 - 부하/장애 훈련/포트폴리오 패키징
+### Week 8 - 관리자 페이지 + 부하/장애 + 포트폴리오 패키징
 
-- [ ] bot 부하 테스트 실행
-- [ ] 장애 훈련 실행(pod kill, DB 지연)
-- [ ] 트러블슈팅 리포트 작성
-- [ ] 포트폴리오 문서 최종 정리(README, architecture, sequence)
+- [ ] 관리자 백엔드 API 구현(공지, 제재, 세션 제어)
+- [ ] 관리자 프론트 화면 구현(React/Next.js)
+- [ ] bot 부하 테스트 및 장애 훈련 실행(pod kill, DB 지연)
+- [ ] 트러블슈팅 리포트 작성 및 포트폴리오 문서 최종 정리
 
 **DoD**
 
+- [ ] 핵심 관리자 워크플로우가 권한 검증 포함 E2E 동작
 - [ ] 문제-설계-검증-결과 내러티브 완성
 
 **KPI**
 
-- [ ] 선정한 CCU에서 p99 목표 충족
-- [ ] MTTR 및 재접속 성공률 문서화
+- [ ] 선정한 CCU에서 p99 목표 충족 (목표: 200 CCU에서 world state sync 경로 180ms 이하)
+- [ ] 계획된 장애 시나리오 기준 MTTR <= 90s
+- [ ] 장애 훈련 중 재접속 성공률 >= 95%
+- [ ] 관리자 핵심 액션 성공률 >= 99% (테스트 시나리오 기준)
 
 ---
 
@@ -232,10 +246,10 @@ Hot path (movement/combat): custom socket + Protobuf
 |---|---:|---:|---|
 | Login p95 | < 200ms | - | |
 | Chat 유실률 | 0% | - | |
-| Tick drift p95 | < 5ms | - | |
-| World sync p95 | < 80ms | - | |
-| 재접속 성공률 | >= 95% | - | |
-| MTTR | <= 30s | - | |
+| Tick drift p95 | < 8ms | - | |
+| World sync p95 | < 120ms | - | |
+| 재접속 성공률 | >= 97% | - | |
+| MTTR | <= 90s | - | |
 
 ## 8) 장애 훈련 체크리스트
 

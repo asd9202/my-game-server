@@ -51,10 +51,10 @@
 | Metric | Target |
 |---|---:|
 | Login handshake p95 | < 200ms |
-| World sync p95 | < 80ms |
-| Tick drift p95 (20Hz) | < 5ms |
+| World sync p95 | < 120ms (150 CCU baseline) |
+| Tick drift p95 (20Hz) | < 8ms (100 CCU baseline) |
 | Message loss rate | 0% |
-| Reconnect success rate | >= 95% |
+| Reconnect success rate | >= 97% |
 | Error rate at target CCU | < 1% |
 
 ## 6) Results
