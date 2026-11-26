@@ -19,7 +19,7 @@
 | C++ Redis 클라이언트 | 미정 | redis-plus-plus, hiredis |
 | C++ 패키지 매니저 | 미정 | vcpkg(manifest 모드), Conan |
 | C++ 테스트 프레임워크 | 미정 | GoogleTest, Catch2 |
-| ASP.NET Core API 스타일 | 미정 | Minimal API, Controller |
+| ASP.NET Core API 스타일 | **결정: Minimal API** ([ADR 0001](docs/adr/0001-aspnetcore-minimal-api.md)) | ~~Controller~~ |
 | .NET 데이터 접근 방식 | 미정 | Npgsql + Dapper, EF Core |
 | C++ PostgreSQL 클라이언트 (채팅 서버에 DB가 필요해질 때) | 미정 | libpqxx, libpq |
 | DB 마이그레이션 도구 | 미정 | Flyway(현재 `V0001__` 명명과 호환), 단순 SQL 스크립트 실행 |
@@ -76,7 +76,11 @@
 my-game-server/
 ├── AGENTS.md / CLAUDE.md / README.md
 ├── CMakeLists.txt                # C++ 루트 빌드 (gateway, chat, libs/cpp 포함)
-├── MyGameServer.sln              # .NET 솔루션 (login, libs/dotnet 포함)
+├── MyGameServer.slnx             # .NET 솔루션 (XML 형식 .slnx, login, libs/dotnet 포함)
+├── global.json                   # .NET SDK 버전 고정 + 테스트 러너(Microsoft.Testing.Platform) 지정
+├── Directory.Build.props         # 모든 .NET 프로젝트 공통 빌드 설정
+├── Directory.Packages.props      # NuGet 패키지 버전 중앙 관리
+├── .editorconfig                 # C# 포맷·명명 규칙 (dotnet format 기준)
 ├── proto/                        # protobuf 단일 진실 공급원 (Single Source of Truth)
 │   ├── common/                   # 공통 타입, 에러 코드, 패킷 ID
 │   ├── client/                   # 클라이언트 ↔ 서버 메시지 (login, gateway, chat)
@@ -94,6 +98,7 @@ my-game-server/
 ├── libs/
 │   ├── cpp/                      # C++ 공용 코드 (TCP 세션·패킷 프레이밍, 로깅, 설정, Redis 래퍼 등)
 │   └── dotnet/                   # .NET 공용 코드 (공통 설정, 생성된 proto 참조 등)
+│       └── MyGame.Protocol/      # proto/ 전체를 빌드 시 C#으로 생성하는 프로젝트
 ├── tools/
 │   └── dummy-client/             # C# 더미 클라이언트 (기능 확인 · 시나리오 · 부하 테스트)
 │       ├── src/DummyClient/
@@ -182,6 +187,7 @@ my-game-server/
 - 대상 프레임워크 `net10.0`(.NET 10 LTS), 언어 버전은 SDK 기본값(C# 14) — `LangVersion`을 `preview`/`latest`로 올리지 않습니다. `Directory.Build.props`에서 공통 설정을 관리합니다.
 - `<Nullable>enable</Nullable>`, `<TreatWarningsAsErrors>true</TreatWarningsAsErrors>`, `<ImplicitUsings>enable</ImplicitUsings>`.
 - 패키지 버전은 `Directory.Packages.props`(Central Package Management)로 중앙 관리합니다.
+- 솔루션 파일은 **`.slnx`(XML 형식)** 하나만 사용합니다. 구형 `.sln`을 만들거나 함께 두지 않습니다. 프로젝트 추가는 `dotnet sln MyGameServer.slnx add --solution-folder <폴더> <경로.csproj>`로 하고, 플랫폼은 기본값(Any CPU)을 쓰므로 `<Configurations>` 블록을 넣지 않습니다.
 - 포맷: `.editorconfig` 기준, `dotnet format`으로 검증.
 - 명명: .NET 표준 규칙(타입/메서드/프로퍼티 `PascalCase`, 지역변수/매개변수 `camelCase`, private 필드 `_camelCase`, 비동기 메서드 `Async` 접미사).
 - 비동기: `async`/`await` 사용, `.Result`/`.Wait()` 금지, `CancellationToken`을 끝까지 전달.
@@ -190,7 +196,22 @@ my-game-server/
 - 로그인 엔드포인트에는 ASP.NET Core 내장 레이트 리미터(`Microsoft.AspNetCore.RateLimiting`)를 적용합니다.
 - 호스팅: DI + `ILogger` 구조화 로깅, 설정은 `IOptions<T>`, 헬스체크(`/healthz`)를 제공합니다.
 - 주요 라이브러리(예정): `Grpc.AspNetCore`, `Google.Protobuf` + `Grpc.Tools`(빌드 시 proto 생성), `Npgsql`, `StackExchange.Redis`.
-- 테스트: xUnit(최초 도입 시 통일) + `Microsoft.AspNetCore.Mvc.Testing`(`WebApplicationFactory`)로 엔드포인트 테스트, `tests/<Project>.Tests`.
+- 테스트: **xUnit v3** + `Microsoft.AspNetCore.Mvc.Testing`(`WebApplicationFactory`)로 엔드포인트 테스트, `tests/<Project>.Tests`.
+  - 러너는 Microsoft.Testing.Platform(MTP)입니다(`global.json`의 `test.runner`). 테스트 프로젝트는 `<OutputType>Exe</OutputType>`이며 `Microsoft.NET.Test.Sdk`/`xunit.runner.visualstudio`(VSTest용)는 추가하지 않습니다.
+  - 테스트 안의 비동기 호출에는 `TestContext.Current.CancellationToken`을 전달합니다.
+
+#### 4.2.1 Login Server 엔드포인트 작성 규칙 (Minimal API, [ADR 0001](docs/adr/0001-aspnetcore-minimal-api.md))
+- 엔드포인트는 `Endpoints/<영역>Endpoints.cs`에 `Map<영역>Endpoints()` 확장 메서드로 정의하고 `MapGroup("/v1/<영역>")`으로 묶습니다. `Program.cs`에는 `Map...()` 호출만 둡니다.
+- protobuf 엔드포인트는 `MapPost`가 아니라 **`MapProtobufPost<TRequest, TResponse>(pattern, handler)`** 로 등록합니다. Accepts/Produces 메타데이터가 항상 붙어 다른 Content-Type은 라우팅 단계에서 415로 거부됩니다.
+- protobuf 요청은 매개변수 타입을 `ProtobufBody<TRequest>`로, 응답은 `ProtobufResults.Ok(...)`(`ProtobufResult<T>`)로 반환합니다. 엔드포인트 안에서 `HttpRequest.Body`를 직접 읽거나 `Parser.ParseFrom`을 호출하지 않습니다.
+- 응답 코드 규약: 역직렬화 실패 400, Content-Type 불일치 415, 본문 크기 초과 413.
+- 본문 크기 상한은 `RequestLimits:MaxBodyBytes` 설정을 `RequestBodyLimitMiddleware`가 강제합니다. Kestrel 전역 설정(`Kestrel:Limits`)에 의존하지 않습니다(TestServer에서 검증할 수 없고, appsettings에 적는 것만으로는 적용되지 않음).
+- 설정은 섹션마다 `Options/<이름>Options.cs` 클래스(`SectionName` 상수 포함)를 두고 `AddOptions<T>().BindConfiguration(...)`으로 등록합니다. 필수 값은 `.Validate(...).ValidateOnStart()`로 시작 시점에 검증합니다.
+- `/v1/debug/*` 같은 디버그 엔드포인트는 `DebugEndpoints:Enabled`(기본 `false`)가 켜졌을 때만 매핑합니다. `config/local/`에서만 켜고 `config/dev/`, `config/prod/`에서는 끕니다.
+- 현재 시각이 필요하면 `DateTime.UtcNow` 대신 DI로 주입한 `TimeProvider`를 사용합니다(테스트에서 시간을 고정할 수 있도록).
+- 로그는 `[LoggerMessage]` 소스 생성 메서드로 남기고, 요청 본문 내용 대신 길이·식별자 등 메타데이터만 기록합니다(§4.3). 요청마다 찍히는 로그는 `Debug` 레벨로 둡니다.
+- 서비스 설정 파일은 `config/<환경>/login-server.json`이며, 경로를 필수 환경 변수 **`LOGIN_SERVER_CONFIG_FILE`** 로 받습니다(없으면 시작 실패). 환경 변수·명령줄 인자가 설정 파일보다 우선합니다. 서비스 디렉터리에 `appsettings*.json`을 두지 않습니다.
+- 테스트는 `LoginServerFactory`(저장소의 `config/local/login-server.json`을 사용)를 `IClassFixture`로 씁니다. `WithWebHostBuilder`로 만든 팩토리와 `HttpClient`는 `await using`/`using`으로 정리합니다.
 
 ### 4.3 공통
 - 로그는 구조화 로그로 남기며 **토큰, 비밀번호, 개인정보를 로그에 남기지 않습니다.**
@@ -243,10 +264,10 @@ ctest --test-dir build/debug --output-on-failure
 
 ### 6.4 .NET (Login Server)
 ```bash
-dotnet build MyGameServer.sln
-dotnet test MyGameServer.sln
-dotnet format MyGameServer.sln --verify-no-changes
-dotnet run --project services/login-server/src/LoginServer
+dotnet build MyGameServer.slnx
+dotnet test --solution MyGameServer.slnx  # xUnit v3 + Microsoft.Testing.Platform (global.json에서 지정)
+dotnet format MyGameServer.slnx --verify-no-changes
+dotnet run --project services/login-server/src/LoginServer   # launchSettings의 local 프로필이 LOGIN_SERVER_CONFIG_FILE 지정
 ```
 
 ### 6.5 전체 컨테이너 실행
@@ -382,6 +403,12 @@ Squash 병합 메시지 형식:
 6. **비밀 정보 보호**: `.env`, 키, 인증서 등을 읽어 출력하거나 커밋하지 않으며, 환경 파일 내용·비밀 키·실제 IP/호스트를 코드에 절대 그대로 작성하지 않습니다 (§7.1).
 7. **파괴적 작업 금지**: 데이터 삭제, `docker compose down -v`, 마이그레이션 롤백, `git reset --hard` 등은 사용자 확인 후에만.
 8. **문서 동기화**: 구조·명령·결정이 바뀌면 README.md / AGENTS.md / ADR을 함께 갱신합니다.
+9. **학습용 상세 보고**: 저장소 소유자는 이 프로젝트로 서버 개발을 학습 중입니다. 작업을 마치면 결과만 나열하지 말고 다음을 포함해 설명합니다.
+   - 추가·변경한 파일마다 **역할**과 **왜 그렇게 만들었는지**(대안이 있었다면 왜 이쪽을 골랐는지)
+   - 요청이 처리되는 **흐름**(어떤 코드가 어떤 순서로 실행되는지)
+   - 작업 중 부딪힌 문제와 원인, 해결 과정 (오류 메시지 포함)
+   - 사용자가 **직접 실행해 볼 수 있는 명령**과 기대 결과
+   - 처음 등장한 개념·용어(예: CPM, MTP, Minimal API 바인딩)는 짧게 풀어서 설명
 
 ### 완료 기준 (Definition of Done)
 - [ ] 관련 서비스가 경고 없이 빌드된다

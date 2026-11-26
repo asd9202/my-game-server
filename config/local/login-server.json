@@ -1,0 +1,15 @@
+{
+  "Urls": "http://localhost:5080",
+  "Logging": {
+    "LogLevel": {
+      "Default": "Debug",
+      "Microsoft.AspNetCore": "Information"
+    }
+  },
+  "RequestLimits": {
+    "MaxBodyBytes": 65536
+  },
+  "DebugEndpoints": {
+    "Enabled": true
+  }
+}

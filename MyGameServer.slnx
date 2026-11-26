@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/libs/">
+    <Project Path="libs/dotnet/MyGame.Protocol/MyGame.Protocol.csproj" />
+  </Folder>
+  <Folder Name="/login-server/">
+    <Project Path="services/login-server/src/LoginServer/LoginServer.csproj" />
+    <Project Path="services/login-server/tests/LoginServer.Tests/LoginServer.Tests.csproj" />
+  </Folder>
+</Solution>
