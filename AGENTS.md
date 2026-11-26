@@ -91,7 +91,14 @@ my-game-server/
 ├── libs/
 │   ├── cpp/                      # C++ 공용 코드 (TCP 세션·패킷 프레이밍, 로깅, 설정, Redis 래퍼 등)
 │   └── dotnet/                   # .NET 공용 코드 (공통 설정, 생성된 proto 참조 등)
-├── tools/                        # 더미 클라이언트, 부하 테스트 도구
+├── tools/
+│   └── dummy-client/             # C# 더미 클라이언트 (기능 확인 · 시나리오 · 부하 테스트)
+│       ├── src/DummyClient/
+│       │   ├── Network/          # TCP 연결, 패킷 프레이밍(§3.3) 인코딩/디코딩
+│       │   ├── Session/          # ClientSession: 로그인·접속·송수신 등 실제 기능 (단일 구현)
+│       │   ├── Interactive/      # 대화형 모드: 입력 명령 → ClientSession 기능 호출
+│       │   └── Scenarios/        # 시나리오/봇 모드: 정해진 흐름을 N개 세션으로 실행
+│       └── tests/DummyClient.Tests/
 ├── deploy/
 │   ├── docker/                   # 서비스별 Dockerfile, docker-compose.yml
 │   └── db/migrations/            # PostgreSQL 마이그레이션 (버전 번호 순)
