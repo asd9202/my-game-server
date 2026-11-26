@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- proto/ 를 빌드 시 C# 코드로 생성한다. 생성물은 obj/ 에만 남고 커밋하지 않는다 (AGENTS.md §2). -->
+  <PropertyGroup>
+    <ProtoRoot>$(MSBuildThisFileDirectory)../../../proto</ProtoRoot>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Google.Protobuf" />
+    <PackageReference Include="Grpc.Tools" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Protobuf Include="$(ProtoRoot)/**/*.proto" ProtoRoot="$(ProtoRoot)" GrpcServices="None" />
+  </ItemGroup>
+
+</Project>

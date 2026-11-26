@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <ProjectReference Include="../../../../libs/dotnet/MyGame.Protocol/MyGame.Protocol.csproj" />
+  </ItemGroup>
+
+</Project>
