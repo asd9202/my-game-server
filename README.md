@@ -61,7 +61,8 @@ my-game-server/
 ├── libs/
 │   ├── cpp/                # C++ 공용 라이브러리 (네트워크, 패킷 처리 등)
 │   └── dotnet/             # .NET 공용 라이브러리
-├── tools/                  # 테스트 클라이언트, 부하 테스트 도구 등
+├── tools/
+│   └── dummy-client/       # C# 더미 클라이언트 (대화형 · 시나리오 · 부하 테스트)
 ├── deploy/
 │   ├── docker/             # Dockerfile, docker-compose
 │   └── db/                 # DB 마이그레이션 / 초기화 스크립트
