@@ -21,6 +21,9 @@
 | C++ 테스트 프레임워크 | 미정 | GoogleTest, Catch2 |
 | ASP.NET Core API 스타일 | 미정 | Minimal API, Controller |
 | .NET 데이터 접근 방식 | 미정 | Npgsql + Dapper, EF Core |
+| C++ PostgreSQL 클라이언트 (채팅 서버에 DB가 필요해질 때) | 미정 | libpqxx, libpq |
+| DB 마이그레이션 도구 | 미정 | Flyway(현재 `V0001__` 명명과 호환), 단순 SQL 스크립트 실행 |
+| 게이트웨이 토큰 검증 방식 | 미정 | Login Server gRPC 호출, Redis 직접 조회 |
 | 메시지 큐 | 필요 시 도입 | Redis Streams(경량·단순), Kafka(대용량·재처리·다수 컨슈머) |
 | 게이트웨이 ↔ 채팅 전송 방식 | 미정 | gRPC 양방향 스트리밍, 자체 TCP 프로토콜 |
 | CI/CD | 미정 (현재 로컬 빌드) | GitHub Actions + 컨테이너 레지스트리 |
@@ -54,7 +57,7 @@
 
 1. `POST /v1/auth/login` (Login Server) → 계정 검증(PostgreSQL) → 세션 토큰 발급 → Redis에 TTL과 함께 저장 → 토큰 + 게이트웨이 주소 응답
 2. 클라이언트가 게이트웨이에 TCP 접속 → 첫 패킷으로 토큰 전달
-3. 게이트웨이가 토큰을 검증(gRPC로 Login Server 호출 또는 Redis 조회 — 구현 시 확정) → 세션 바인딩
+3. 게이트웨이가 토큰을 검증(gRPC로 Login Server 호출 또는 Redis 조회 — §0 미확정) → 세션 바인딩
 4. 인증 전 연결은 인증 패킷 외에는 모두 거부하고, 일정 시간 내 인증하지 않으면 끊습니다.
 
 ### 1.4 메시지 큐 도입 기준
@@ -270,7 +273,7 @@ docker compose -f deploy/docker/docker-compose.yml up --build
 | 환경 파일 내용 | `.env`, `.env.*`의 실제 값 |
 | 비밀 키·자격 증명 | 비밀번호, API 키, 토큰 서명 키(JWT secret 등), 암호화 키, 개인 키, 인증서(`*.pem`, `*.pfx`, `*.key`) |
 | 접속 정보 | 실제 DB/Redis 연결 문자열, 계정명·비밀번호가 포함된 URL |
-| 네트워크 주소 | 실제 서버·클라우드·사내망의 IP 주소, 호스트명, 도메인, 외부 노출 포트 |
+| 네트워크 주소 | 실제 서버·클라우드·사내망의 IP 주소, 호스트명, 도메인, 그리고 이들과 묶인 엔드포인트(`host:port`) |
 
 적용 범위: 소스 코드, 설정 파일(`appsettings*.json`, CMake 옵션 등), `Dockerfile`, `docker-compose.yml`, 스크립트, 테스트 코드, 주석, 문서, 커밋 메시지, PR 본문, 로그 출력 — **저장소에 들어가거나 외부로 출력되는 모든 곳**.
 
@@ -283,6 +286,7 @@ docker compose -f deploy/docker/docker-compose.yml up --build
 허용되는 예외 (로컬 개발 한정, 비밀이 아닌 값):
 - 루프백 주소 `localhost`, `127.0.0.1`, `::1`, 바인딩용 `0.0.0.0`
 - Docker Compose 내부 서비스명 (`postgres`, `redis`, `login-server` 등)
+- 서비스가 리슨할 **포트 번호 자체** (예: 게이트웨이 `7000`). 비밀이 아니므로 `config/<환경>/`에 둘 수 있습니다. 단, 실제 운영 서버의 주소와 묶인 엔드포인트(`<실제 호스트>:<포트>`)는 위 금지 대상입니다.
 - 테스트 전용으로 명백히 가짜인 값 (예: `test-secret-do-not-use`)
 
 발견·사고 시:

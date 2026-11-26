@@ -47,7 +47,6 @@ cmake-build-*/
 CMakeFiles/
 CMakeCache.txt
 cmake_install.cmake
-Makefile
 install_manifest.txt
 compile_commands.json
 
@@ -68,22 +67,17 @@ Testing/
 .cache/
 
 # ===== .NET / C# =====
-# Build results
+# Build results (Debug/Release 산출물은 bin/, obj/ 아래에 생성됨)
 [Bb]in/
 [Oo]bj/
-[Dd]ebug/
-[Rr]elease/
-[Ll]og/
-[Ll]ogs/
-artifacts/
-publish/
+/artifacts/
+/publish/
 *.nupkg
 *.snupkg
 
 # NuGet
 .nuget/
-packages/
-!**/packages/build/
+/packages/
 project.lock.json
 project.fragment.lock.json
 *.nuget.props
