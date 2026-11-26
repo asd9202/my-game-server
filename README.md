@@ -65,6 +65,7 @@ my-game-server/
 ├── deploy/
 │   ├── docker/             # Dockerfile, docker-compose
 │   └── db/                 # DB 마이그레이션 / 초기화 스크립트
+├── config/                 # 환경별 서비스 설정 (local / dev / prod, 비밀 값 제외)
 ├── scripts/                # 빌드 / 코드 생성 / 실행 보조 스크립트
 └── docs/                   # 설계 문서, ADR
 ```

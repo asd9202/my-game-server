@@ -83,6 +83,10 @@ my-game-server/
 ├── deploy/
 │   ├── docker/                   # 서비스별 Dockerfile, docker-compose.yml
 │   └── db/migrations/            # PostgreSQL 마이그레이션 (버전 번호 순)
+├── config/                       # 환경별 서비스 설정 (비밀 값 제외)
+│   ├── local/                    # 로컬 개발
+│   ├── dev/                      # 개발/테스트 서버
+│   └── prod/                     # 운영
 ├── scripts/                      # proto 코드 생성, 빌드, 로컬 실행 스크립트
 └── docs/
     └── adr/                      # 아키텍처 결정 기록 (NNNN-title.md)
@@ -92,6 +96,11 @@ my-game-server/
 - 새 서비스는 `services/<name>-server/` 형식으로 추가합니다.
 - 두 개 이상의 서비스가 쓰는 코드는 `libs/`로 올립니다. 서비스 간 소스 직접 참조는 금지합니다.
 - **생성 코드(protobuf/gRPC 출력물)는 커밋하지 않습니다.** 빌드 시 생성합니다.
+- `deploy/`와 `config/`의 역할을 구분합니다.
+  - `deploy/`: 배포·인프라 정의 (Dockerfile, Compose, DB 마이그레이션, `.env.example`).
+  - `config/<환경>/`: 서비스가 읽는 **비밀이 아닌** 설정 (포트, 타임아웃, 로그 레벨, 최대 패킷 크기 등). 파일명은 `<service>.<확장자>` (예: `config/local/login-server.toml`, `config/dev/gateway-server.json`).
+  - `config/`에도 §7.1이 그대로 적용됩니다. 비밀 값·실제 IP/호스트는 넣지 않고 환경 변수로 주입하며, 설정 파일에는 변수 이름만 둡니다.
+- 빈 디렉터리는 `.gitkeep`으로 유지하고, 실제 파일이 생기면 `.gitkeep`을 삭제합니다.
 - 디렉터리가 아직 없다면 위 구조에 맞춰 생성하되, 구조 자체를 바꾸려면 사용자 확인을 받습니다.
 
 ---
