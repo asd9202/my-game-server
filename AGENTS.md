@@ -344,6 +344,32 @@ docker compose -f deploy/docker/docker-compose.yml up --build
 - 본문: 변경 요약, 변경 이유, 테스트 방법/결과, proto·DB 스키마 변경 여부.
 - proto 또는 DB 마이그레이션 변경이 있으면 PR 본문에 명시합니다.
 
+### 9.4 병합 (Merge)
+
+| PR 방향 | 병합 방식 | 이유 |
+|---|---|---|
+| `feature/*`, `fix/*` → `develop` | **Squash and merge** | `develop` 히스토리를 "PR 1개 = 커밋 1개"로 유지 |
+| `release/*` → `master` | **Create a merge commit** | 릴리스 경계를 히스토리에 남김 |
+| `develop` → `master` (`release/*` 없이 배포할 때) | **Create a merge commit** | 위와 동일 |
+| `hotfix/*` → `master`, `develop` | **Create a merge commit** | 양쪽 브랜치에 같은 수정이 들어갔음을 추적 |
+
+Squash 병합 메시지 형식:
+```
+<type>(<scope>): <요약> (#<PR 번호>)
+
+- 핵심 변경 1
+- 핵심 변경 2
+```
+- 제목은 PR 제목(§9.3)에 PR 번호를 붙입니다.
+- 본문은 GitHub이 자동으로 나열한 개별 커밋 메시지를 그대로 두지 말고 핵심 변경만 요약합니다. 리뷰 수정 같은 작업 과정은 쓰지 않습니다.
+- Merge commit 메시지는 GitHub 기본값(`Merge pull request #N from ...`)을 유지하고, 본문에 릴리스 버전이나 핫픽스 요약을 적습니다.
+
+병합 전후 규칙:
+- 병합 전: 리뷰 지적 사항이 반영되었고, 대상 브랜치와 충돌이 없어야 합니다.
+- 병합 시: 커밋 작성자 이메일이 개인 계정인지 확인합니다.
+- 병합 후: 작업 브랜치(`feature/*`, `fix/*`, `hotfix/*`, `release/*`)는 삭제합니다. Squash된 브랜치는 재사용하지 않고, 다음 작업은 최신 `develop`에서 새 브랜치를 만들어 시작합니다.
+- 에이전트는 사용자가 요청한 경우에만 병합하며(§9.1), 위 방식과 메시지 형식을 따릅니다.
+
 ---
 
 ## 10. 에이전트 작업 원칙
