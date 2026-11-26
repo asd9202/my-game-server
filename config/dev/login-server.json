@@ -1,15 +1,13 @@
 {
+  "Urls": "http://0.0.0.0:8080",
   "Logging": {
     "LogLevel": {
       "Default": "Information",
       "Microsoft.AspNetCore": "Warning"
     }
   },
-  "AllowedHosts": "*",
-  "Kestrel": {
-    "Limits": {
-      "MaxRequestBodySize": 65536
-    }
+  "RequestLimits": {
+    "MaxBodyBytes": 65536
   },
   "DebugEndpoints": {
     "Enabled": false

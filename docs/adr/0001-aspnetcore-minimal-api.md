@@ -13,7 +13,7 @@ Login Server(ASP.NET Core)의 HTTP API 작성 스타일이 미정이었다(AGENT
 
 - 엔드포인트는 `Endpoints/<영역>Endpoints.cs`의 `Map<영역>Endpoints()` 확장 메서드로 정의하고, `MapGroup("/v1/<영역>")`으로 묶는다.
 - protobuf 바디는 공용 바인더 `ProtobufBody<T>`(요청)와 `ProtobufResult<T>`(응답)로만 처리한다. 엔드포인트에서 직접 파싱하지 않는다.
-- 엔드포인트에는 `.Accepts<T>("application/x-protobuf")`를 붙여 다른 Content-Type은 라우팅 단계에서 415로 거부한다.
+- protobuf 엔드포인트는 `MapProtobufPost<TRequest, TResponse>()`로 등록한다. 이 헬퍼가 `.Accepts`/`.Produces` 메타데이터를 항상 붙이므로 다른 Content-Type은 라우팅 단계에서 415로 거부된다.
 
 ## 이유
 

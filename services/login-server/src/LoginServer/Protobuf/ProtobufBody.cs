@@ -20,12 +20,13 @@ public sealed class ProtobufBody<T>
     public static async ValueTask<ProtobufBody<T>?> BindAsync(HttpContext context)
     {
         var request = context.Request;
+        // MapProtobufPost 로 등록하면 라우팅 단계에서 이미 415 로 걸러지므로 여기는 방어용이다.
         if (!IsProtobufContentType(request.ContentType))
         {
             return null;
         }
 
-        // 본문 크기 상한은 Kestrel MaxRequestBodySize 설정으로 강제된다(초과 시 413).
+        // 본문 크기 상한은 RequestBodyLimitMiddleware 가 강제한다(초과 시 413).
         using var buffer = new MemoryStream();
         await request.Body.CopyToAsync(buffer, context.RequestAborted);
 

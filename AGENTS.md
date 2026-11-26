@@ -202,12 +202,16 @@ my-game-server/
 
 #### 4.2.1 Login Server 엔드포인트 작성 규칙 (Minimal API, [ADR 0001](docs/adr/0001-aspnetcore-minimal-api.md))
 - 엔드포인트는 `Endpoints/<영역>Endpoints.cs`에 `Map<영역>Endpoints()` 확장 메서드로 정의하고 `MapGroup("/v1/<영역>")`으로 묶습니다. `Program.cs`에는 `Map...()` 호출만 둡니다.
+- protobuf 엔드포인트는 `MapPost`가 아니라 **`MapProtobufPost<TRequest, TResponse>(pattern, handler)`** 로 등록합니다. Accepts/Produces 메타데이터가 항상 붙어 다른 Content-Type은 라우팅 단계에서 415로 거부됩니다.
 - protobuf 요청은 매개변수 타입을 `ProtobufBody<TRequest>`로, 응답은 `ProtobufResults.Ok(...)`(`ProtobufResult<T>`)로 반환합니다. 엔드포인트 안에서 `HttpRequest.Body`를 직접 읽거나 `Parser.ParseFrom`을 호출하지 않습니다.
-- 엔드포인트에 `.Accepts<TRequest>(ProtobufMediaType.Value)`와 `.Produces<TResponse>(..., ProtobufMediaType.Value)`를 붙입니다. 다른 Content-Type은 라우팅 단계에서 415로 거부됩니다.
-- 응답 코드 규약: 역직렬화 실패 400, Content-Type 불일치 415, 본문 크기 초과 413(`Kestrel:Limits:MaxRequestBodySize`).
-- `/v1/debug/*` 같은 디버그 엔드포인트는 설정 플래그(`DebugEndpoints:Enabled`, 기본 `false`)로만 매핑합니다. 기본 `appsettings.json`에서 켜지 않고 `appsettings.Development.json`에서만 켭니다.
+- 응답 코드 규약: 역직렬화 실패 400, Content-Type 불일치 415, 본문 크기 초과 413.
+- 본문 크기 상한은 `RequestLimits:MaxBodyBytes` 설정을 `RequestBodyLimitMiddleware`가 강제합니다. Kestrel 전역 설정(`Kestrel:Limits`)에 의존하지 않습니다(TestServer에서 검증할 수 없고, appsettings에 적는 것만으로는 적용되지 않음).
+- 설정은 섹션마다 `Options/<이름>Options.cs` 클래스(`SectionName` 상수 포함)를 두고 `AddOptions<T>().BindConfiguration(...)`으로 등록합니다. 필수 값은 `.Validate(...).ValidateOnStart()`로 시작 시점에 검증합니다.
+- `/v1/debug/*` 같은 디버그 엔드포인트는 `DebugEndpoints:Enabled`(기본 `false`)가 켜졌을 때만 매핑합니다. `config/local/`에서만 켜고 `config/dev/`, `config/prod/`에서는 끕니다.
 - 현재 시각이 필요하면 `DateTime.UtcNow` 대신 DI로 주입한 `TimeProvider`를 사용합니다(테스트에서 시간을 고정할 수 있도록).
-- 로그는 `[LoggerMessage]` 소스 생성 메서드로 남기고, 요청 본문 내용 대신 길이·식별자 등 메타데이터만 기록합니다(§4.3).
+- 로그는 `[LoggerMessage]` 소스 생성 메서드로 남기고, 요청 본문 내용 대신 길이·식별자 등 메타데이터만 기록합니다(§4.3). 요청마다 찍히는 로그는 `Debug` 레벨로 둡니다.
+- 서비스 설정 파일은 `config/<환경>/login-server.json`이며, 경로를 필수 환경 변수 **`LOGIN_SERVER_CONFIG_FILE`** 로 받습니다(없으면 시작 실패). 환경 변수·명령줄 인자가 설정 파일보다 우선합니다. 서비스 디렉터리에 `appsettings*.json`을 두지 않습니다.
+- 테스트는 `LoginServerFactory`(저장소의 `config/local/login-server.json`을 사용)를 `IClassFixture`로 씁니다. `WithWebHostBuilder`로 만든 팩토리와 `HttpClient`는 `await using`/`using`으로 정리합니다.
 
 ### 4.3 공통
 - 로그는 구조화 로그로 남기며 **토큰, 비밀번호, 개인정보를 로그에 남기지 않습니다.**
@@ -263,7 +267,7 @@ ctest --test-dir build/debug --output-on-failure
 dotnet build MyGameServer.slnx
 dotnet test --solution MyGameServer.slnx  # xUnit v3 + Microsoft.Testing.Platform (global.json에서 지정)
 dotnet format MyGameServer.slnx --verify-no-changes
-dotnet run --project services/login-server/src/LoginServer
+dotnet run --project services/login-server/src/LoginServer   # launchSettings의 local 프로필이 LOGIN_SERVER_CONFIG_FILE 지정
 ```
 
 ### 6.5 전체 컨테이너 실행
