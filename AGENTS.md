@@ -15,8 +15,12 @@
 
 | 항목 | 상태 | 후보 |
 |---|---|---|
-| C++ HTTP 프레임워크 | 미정 | Drogon, Boost.Beast, (기타) |
+| C++ 비동기 네트워크 라이브러리 | 미정 | Boost.Asio, standalone Asio |
+| C++ Redis 클라이언트 | 미정 | redis-plus-plus, hiredis |
 | C++ 패키지 매니저 | 미정 | vcpkg(manifest 모드), Conan |
+| C++ 테스트 프레임워크 | 미정 | GoogleTest, Catch2 |
+| ASP.NET Core API 스타일 | 미정 | Minimal API, Controller |
+| .NET 데이터 접근 방식 | 미정 | Npgsql + Dapper, EF Core |
 | 메시지 큐 | 필요 시 도입 | Redis Streams(경량·단순), Kafka(대용량·재처리·다수 컨슈머) |
 | 게이트웨이 ↔ 채팅 전송 방식 | 미정 | gRPC 양방향 스트리밍, 자체 TCP 프로토콜 |
 | CI/CD | 미정 (현재 로컬 빌드) | GitHub Actions + 컨테이너 레지스트리 |
@@ -31,9 +35,11 @@
 
 | 서비스 | 디렉터리 | 언어 | 외부(클라) 인터페이스 | 내부 인터페이스 | 저장소 |
 |---|---|---|---|---|---|
-| Login Server | `services/login-server` | C++ | HTTP (REST, protobuf 바디) | gRPC 서버 (토큰 검증 등) | PostgreSQL, Redis |
-| Gateway Server | `services/gateway-server` | C# / .NET 10 | TCP 소켓 | gRPC 클라이언트, TCP 소켓 | Redis |
-| Chat Server | `services/chat-server` | C# / .NET 10 | 없음 (게이트웨이 경유) | gRPC 서버, TCP 소켓 | Redis (+ 필요 시 PostgreSQL) |
+| Login Server | `services/login-server` | C# / ASP.NET Core (.NET 10) | HTTP (REST, protobuf 바디) | gRPC 서버 (토큰 검증 등) | PostgreSQL, Redis |
+| Gateway Server | `services/gateway-server` | C++26 | TCP 소켓 | gRPC 클라이언트, TCP 소켓 | Redis |
+| Chat Server | `services/chat-server` | C++26 | 없음 (게이트웨이 경유) | gRPC 서버, TCP 소켓 | Redis (+ 필요 시 PostgreSQL) |
+
+언어 분담 원칙: **HTTP 웹 서버는 ASP.NET Core**, **실시간 TCP 소켓 서버는 C++** 로 작성합니다. 새 서비스도 이 기준을 따릅니다.
 
 ### 1.2 통신 원칙
 
@@ -66,19 +72,25 @@
 ```
 my-game-server/
 ├── AGENTS.md / CLAUDE.md / README.md
+├── CMakeLists.txt                # C++ 루트 빌드 (gateway, chat, libs/cpp 포함)
+├── MyGameServer.sln              # .NET 솔루션 (login, libs/dotnet 포함)
 ├── proto/                        # protobuf 단일 진실 공급원 (Single Source of Truth)
 │   ├── common/                   # 공통 타입, 에러 코드, 패킷 ID
 │   ├── client/                   # 클라이언트 ↔ 서버 메시지 (login, gateway, chat)
 │   └── internal/                 # 서버 ↔ 서버 메시지 및 gRPC 서비스 정의
 ├── services/
-│   ├── login-server/             # C++ (CMake)
+│   ├── login-server/             # ASP.NET Core
+│   │   ├── src/LoginServer/      # 서비스 프로젝트
+│   │   └── tests/LoginServer.Tests/
+│   ├── gateway-server/           # C++ (CMake)
 │   │   ├── src/  include/  tests/
 │   │   └── CMakeLists.txt
-│   ├── gateway-server/           # .NET (src/, tests/)
-│   └── chat-server/              # .NET (src/, tests/)
+│   └── chat-server/              # C++ (CMake)
+│       ├── src/  include/  tests/
+│       └── CMakeLists.txt
 ├── libs/
-│   ├── cpp/                      # C++ 공용 코드 (로깅, 설정, DB 래퍼 등)
-│   └── dotnet/                   # .NET 공용 코드 (TCP 네트워킹, 패킷 처리, 생성된 proto 등)
+│   ├── cpp/                      # C++ 공용 코드 (TCP 세션·패킷 프레이밍, 로깅, 설정, Redis 래퍼 등)
+│   └── dotnet/                   # .NET 공용 코드 (공통 설정, 생성된 proto 참조 등)
 ├── tools/                        # 더미 클라이언트, 부하 테스트 도구
 ├── deploy/
 │   ├── docker/                   # 서비스별 Dockerfile, docker-compose.yml
@@ -98,7 +110,7 @@ my-game-server/
 - **생성 코드(protobuf/gRPC 출력물)는 커밋하지 않습니다.** 빌드 시 생성합니다.
 - `deploy/`와 `config/`의 역할을 구분합니다.
   - `deploy/`: 배포·인프라 정의 (Dockerfile, Compose, DB 마이그레이션, `.env.example`).
-  - `config/<환경>/`: 서비스가 읽는 **비밀이 아닌** 설정 (포트, 타임아웃, 로그 레벨, 최대 패킷 크기 등). 파일명은 `<service>.<확장자>` (예: `config/local/login-server.toml`, `config/dev/gateway-server.json`).
+  - `config/<환경>/`: 서비스가 읽는 **비밀이 아닌** 설정 (포트, 타임아웃, 로그 레벨, 최대 패킷 크기 등). 파일명은 `<service>.<확장자>` (예: `config/local/login-server.json`, `config/dev/gateway-server.toml`).
   - `config/`에도 §7.1이 그대로 적용됩니다. 비밀 값·실제 IP/호스트는 넣지 않고 환경 변수로 주입하며, 설정 파일에는 변수 이름만 둡니다.
 - 빈 디렉터리는 `.gitkeep`으로 유지하고, 실제 파일이 생기면 `.gitkeep`을 삭제합니다.
 - 디렉터리가 아직 없다면 위 구조에 맞춰 생성하되, 구조 자체를 바꾸려면 사용자 확인을 받습니다.
@@ -112,7 +124,7 @@ my-game-server/
 ### 3.1 작성 규칙
 - `syntax = "proto3";` 사용.
 - 패키지: `mygame.<영역>.v<버전>` (예: `mygame.chat.v1`, `mygame.internal.auth.v1`).
-- C# 네임스페이스 옵션: `option csharp_namespace = "MyGame.Protocol.Chat.V1";` 형식.
+- C# 네임스페이스 옵션: `option csharp_namespace = "MyGame.Protocol.Chat.V1";` 형식. (C++은 패키지에서 `mygame::chat::v1`로 자동 생성)
 - 파일명 `snake_case.proto`, 메시지 `PascalCase`, 필드 `snake_case`, enum 값 `UPPER_SNAKE_CASE` + 타입명 접두사, 첫 값은 `<TYPE>_UNSPECIFIED = 0`.
 - 요청/응답 쌍은 `XxxRequest` / `XxxResponse`로 명명합니다.
 - 에러는 공통 `ErrorCode` enum(`proto/common`)을 사용합니다.
@@ -138,29 +150,37 @@ my-game-server/
 
 ## 4. 언어별 코딩 규칙
 
-### 4.1 C++ (Login Server, `libs/cpp`)
+### 4.1 C++ (Gateway / Chat Server, `libs/cpp`)
 - 표준: **C++26** (`CMAKE_CXX_STANDARD 26`, `CMAKE_CXX_STANDARD_REQUIRED ON`). 컴파일러가 해당 값을 지원하지 않으면 `-std=c++2c`를 사용합니다. 그 외 표준 플래그를 임의로 바꾸지 마세요.
-  존재하지 않거나 지원되지 않는 표준 플래그를 임의로 넣지 마세요.
-- 빌드 시스템: **CMake**(+ Ninja 권장). 패키지 매니저는 §0 결정에 따름.
+- 빌드 시스템: **CMake**(+ Ninja 권장). 루트 `CMakeLists.txt`가 `libs/cpp`와 각 서비스를 `add_subdirectory`로 묶습니다. 패키지 매니저는 §0 결정에 따름.
 - 경고: `-Wall -Wextra -Wpedantic`(MSVC는 `/W4`), 신규 코드는 경고 0 유지.
 - 포맷/정적 분석: `.clang-format`, `.clang-tidy`를 저장소 루트에 두고 따릅니다.
-- 명명: 타입 `PascalCase`, 함수/변수 `snake_case`, 멤버 변수 `snake_case_`, 상수 `kPascalCase`, 네임스페이스 `mygame::login`.
+- 명명: 타입 `PascalCase`, 함수/변수 `snake_case`, 멤버 변수 `snake_case_`, 상수 `kPascalCase`, 네임스페이스 `mygame::gateway`, `mygame::chat`, `mygame::common`.
 - 메모리: raw `new`/`delete` 금지, RAII와 스마트 포인터 사용. 소유권이 없는 참조는 참조/`std::span`/`std::string_view`.
-- 에러 처리: 예상 가능한 실패는 `std::expected`, 예외는 진짜 예외 상황에만.
-- 비동기 I/O 스레드에서 블로킹 호출(DB 동기 쿼리, `sleep` 등) 금지.
-- 테스트: GoogleTest 또는 Catch2(최초 도입 시 하나로 통일) + CTest.
+- 에러 처리: 예상 가능한 실패는 `std::expected`, 예외는 진짜 예외 상황에만. 네트워크 콜백에서 예외가 I/O 스레드 밖으로 새지 않게 합니다.
+- 네트워킹 (라이브러리는 §0 결정에 따름):
+  - 비동기 I/O 모델(Asio `io_context` + 스레드 풀)을 사용하고, I/O 스레드에서 블로킹 호출(동기 DB/Redis 쿼리, `sleep`, 무거운 연산) 금지.
+  - 세션 단위 작업은 strand 등으로 직렬화해 락 없이 처리하는 것을 우선하고, 공유 상태에 락이 필요하면 범위를 최소화합니다.
+  - 세션 수명은 `std::shared_ptr`/`enable_shared_from_this`로 관리해 비동기 콜백 중 해제되지 않게 합니다.
+  - 송수신 버퍼는 재사용(풀링)하고, 패킷 프레이밍은 §3.3을 따르며 `libs/cpp`의 공용 구현을 사용합니다.
+  - 송신 큐 길이 상한을 두어 느린 클라이언트가 메모리를 무한히 쓰지 않게 합니다.
+  - `SIGINT`/`SIGTERM` 수신 시 새 연결을 막고 기존 세션을 정리하는 graceful shutdown을 구현합니다.
+- gRPC: C++ gRPC(`grpc++`)의 async 또는 callback API를 사용하고, 모든 호출에 deadline을 지정합니다.
+- 테스트: §0에서 정한 프레임워크 + CTest. 네트워크 계층은 루프백 소켓을 이용한 통합 테스트로 검증합니다.
 
-### 4.2 C# (Gateway / Chat Server, `libs/dotnet`)
+### 4.2 C# (Login Server, `libs/dotnet`)
 - 대상 프레임워크 `net10.0`(.NET 10 LTS), 언어 버전은 SDK 기본값(C# 14) — `LangVersion`을 `preview`/`latest`로 올리지 않습니다. `Directory.Build.props`에서 공통 설정을 관리합니다.
 - `<Nullable>enable</Nullable>`, `<TreatWarningsAsErrors>true</TreatWarningsAsErrors>`, `<ImplicitUsings>enable</ImplicitUsings>`.
 - 패키지 버전은 `Directory.Packages.props`(Central Package Management)로 중앙 관리합니다.
 - 포맷: `.editorconfig` 기준, `dotnet format`으로 검증.
 - 명명: .NET 표준 규칙(타입/메서드/프로퍼티 `PascalCase`, 지역변수/매개변수 `camelCase`, private 필드 `_camelCase`, 비동기 메서드 `Async` 접미사).
 - 비동기: `async`/`await` 사용, `.Result`/`.Wait()` 금지, `CancellationToken`을 끝까지 전달.
-- 네트워킹: `System.IO.Pipelines` 기반 소켓 처리를 우선 고려하고, 핫패스에서 불필요한 할당을 피합니다(`ArrayPool`, `Span<T>`, `Memory<T>`).
-- 호스팅: Generic Host(`Microsoft.Extensions.Hosting`) + DI + `ILogger` 구조화 로깅. 설정은 `IOptions<T>`.
-- 주요 라이브러리(예정): `Grpc.AspNetCore` / `Grpc.Net.Client`, `Google.Protobuf` + `Grpc.Tools`(빌드 시 proto 생성), `Npgsql`, `StackExchange.Redis`.
-- 테스트: xUnit(최초 도입 시 통일), `tests/<Project>.Tests`.
+- 웹 서버: **ASP.NET Core** (API 스타일은 §0 결정에 따름). HTTP API와 내부 gRPC 서비스(`Grpc.AspNetCore`)를 같은 호스트에서 제공하되, **포트를 분리**해 gRPC 포트는 내부망에만 노출합니다.
+- HTTP 바디는 protobuf(`application/x-protobuf`)로 처리합니다. 직렬화는 공용 입출력 포매터/헬퍼로 한 곳에서 처리하고, 엔드포인트마다 직접 파싱하지 않습니다.
+- 로그인 엔드포인트에는 ASP.NET Core 내장 레이트 리미터(`Microsoft.AspNetCore.RateLimiting`)를 적용합니다.
+- 호스팅: DI + `ILogger` 구조화 로깅, 설정은 `IOptions<T>`, 헬스체크(`/healthz`)를 제공합니다.
+- 주요 라이브러리(예정): `Grpc.AspNetCore`, `Google.Protobuf` + `Grpc.Tools`(빌드 시 proto 생성), `Npgsql`, `StackExchange.Redis`.
+- 테스트: xUnit(최초 도입 시 통일) + `Microsoft.AspNetCore.Mvc.Testing`(`WebApplicationFactory`)로 엔드포인트 테스트, `tests/<Project>.Tests`.
 
 ### 4.3 공통
 - 로그는 구조화 로그로 남기며 **토큰, 비밀번호, 개인정보를 로그에 남기지 않습니다.**
@@ -196,26 +216,27 @@ my-game-server/
 - C++: 최신 Clang 또는 GCC(C++26 지원), CMake, Ninja
 - .NET 10 SDK
 - Docker / Docker Compose
-- `protoc` 및 gRPC 플러그인(C++ 생성용; C#은 `Grpc.Tools`가 처리)
+- `protoc` 및 `grpc_cpp_plugin`(C++ 생성용; C#은 `Grpc.Tools`가 처리)
 
 ### 6.2 인프라(로컬)
 ```bash
 docker compose -f deploy/docker/docker-compose.yml up -d postgres redis
 ```
 
-### 6.3 C++ (Login Server)
+### 6.3 C++ (Gateway / Chat Server)
 ```bash
-cmake -S services/login-server -B build/login-server -G Ninja -DCMAKE_BUILD_TYPE=Debug
-cmake --build build/login-server
-ctest --test-dir build/login-server --output-on-failure
+cmake -S . -B build/debug -G Ninja -DCMAKE_BUILD_TYPE=Debug
+cmake --build build/debug
+ctest --test-dir build/debug --output-on-failure
+./build/debug/services/gateway-server/gateway-server
 ```
 
-### 6.4 .NET (Gateway / Chat Server)
+### 6.4 .NET (Login Server)
 ```bash
 dotnet build MyGameServer.sln
 dotnet test MyGameServer.sln
 dotnet format MyGameServer.sln --verify-no-changes
-dotnet run --project services/gateway-server/src/GatewayServer
+dotnet run --project services/login-server/src/LoginServer
 ```
 
 ### 6.5 전체 컨테이너 실행
@@ -264,7 +285,7 @@ docker compose -f deploy/docker/docker-compose.yml up --build
 ### 7.2 기타 보안 규칙
 
 - 외부 입력(HTTP 바디, TCP 패킷)은 크기·형식·범위를 검증합니다. 역직렬화 실패는 연결 종료/에러 응답으로 처리합니다.
-- 로그인 시도에는 레이트 리밋을 고려합니다.
+- 로그인 시도에는 레이트 리밋을 적용합니다 (§4.2).
 - 내부 gRPC 포트는 외부에 노출하지 않습니다(Compose 네트워크 내부 전용).
 
 ---

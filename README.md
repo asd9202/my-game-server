@@ -11,9 +11,9 @@
 
 | 서버 | 역할 | 언어 / 런타임 | 클라이언트 ↔ 서버 | 서버 ↔ 서버 |
 |---|---|---|---|---|
-| **Login Server** | 계정 인증, 세션 토큰 발급, 게이트웨이 주소 안내 | C++ (웹 서버) | HTTP | gRPC |
-| **Gateway Server** | 클라이언트 TCP 연결 유지, 토큰 검증, 패킷 라우팅 | .NET 10 / C# 14 | TCP 소켓 | gRPC, TCP 소켓 |
-| **Chat Server** | 채널/귓속말 등 채팅 처리, 메시지 브로드캐스트 | .NET 10 / C# 14 | (게이트웨이 경유) | gRPC, TCP 소켓 |
+| **Login Server** | 계정 인증, 세션 토큰 발급, 게이트웨이 주소 안내 | ASP.NET Core (.NET 10 / C# 14) | HTTP | gRPC |
+| **Gateway Server** | 클라이언트 TCP 연결 유지, 토큰 검증, 패킷 라우팅 | C++26 | TCP 소켓 | gRPC, TCP 소켓 |
+| **Chat Server** | 채널/귓속말 등 채팅 처리, 메시지 브로드캐스트 | C++26 | (게이트웨이 경유) | gRPC, TCP 소켓 |
 
 ### 기본 흐름
 
@@ -37,8 +37,8 @@ Client ──HTTP──▶ Login Server ──▶ PostgreSQL (계정)
 
 | 분류 | 사용 기술 |
 |---|---|
-| 웹 서버 (HTTP) | C++26 |
-| 소켓 통신 서버 (TCP) | .NET 10 (LTS), C# 14 |
+| 웹 서버 (HTTP) | ASP.NET Core — .NET 10 (LTS), C# 14 |
+| 소켓 통신 서버 (TCP) | C++26 |
 | 클라이언트 ↔ 서버 통신 | HTTP, TCP 소켓 |
 | 서버 ↔ 서버 통신 | gRPC, TCP 소켓 |
 | 통신 규격 | **Protocol Buffers** (모든 통신 메시지 정의를 `.proto`로 일원화) |
@@ -55,12 +55,12 @@ Client ──HTTP──▶ Login Server ──▶ PostgreSQL (계정)
 my-game-server/
 ├── proto/                  # 모든 .proto 정의 (단일 진실 공급원)
 ├── services/
-│   ├── login-server/       # C++ HTTP 로그인 서버
-│   ├── gateway-server/     # .NET TCP 게이트웨이 서버
-│   └── chat-server/        # .NET 채팅 서버
+│   ├── login-server/       # ASP.NET Core HTTP 로그인 서버
+│   ├── gateway-server/     # C++ TCP 게이트웨이 서버
+│   └── chat-server/        # C++ 채팅 서버
 ├── libs/
-│   ├── cpp/                # C++ 공용 라이브러리
-│   └── dotnet/             # .NET 공용 라이브러리 (네트워크, 프로토콜 등)
+│   ├── cpp/                # C++ 공용 라이브러리 (네트워크, 패킷 처리 등)
+│   └── dotnet/             # .NET 공용 라이브러리
 ├── tools/                  # 테스트 클라이언트, 부하 테스트 도구 등
 ├── deploy/
 │   ├── docker/             # Dockerfile, docker-compose
