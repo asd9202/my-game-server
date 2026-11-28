@@ -1,0 +1,56 @@
+# 로컬 개발용 인프라 (ADR 0002)
+#
+# 사용법 (저장소 루트에서):
+#   cp deploy/docker/.env.example deploy/docker/.env   # 최초 1회, 값 수정
+#   docker compose -f deploy/docker/docker-compose.yml up -d postgres valkey
+#
+# .env는 이 파일과 같은 디렉터리(deploy/docker/)에서 읽힌다.
+# 필수 값이 비어 있으면 ${VAR:?...} 때문에 Compose가 시작 전에 실패한다.
+
+name: mygame
+
+services:
+  postgres:
+    image: postgres:19
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required (see deploy/docker/.env.example)}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required (see deploy/docker/.env.example)}
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required (see deploy/docker/.env.example)}
+    ports:
+      # 루프백에만 바인딩해 같은 네트워크의 다른 기기에서 접근하지 못하게 한다.
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      # PostgreSQL 18+ 이미지는 PGDATA가 /var/lib/postgresql/<메이저>/docker 이므로
+      # 상위 디렉터리를 마운트한다. (예전처럼 .../data에 마운트하면 데이터가 볼륨 밖에 저장된다)
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      # $$는 Compose 치환을 막고 컨테이너 안의 환경 변수를 쓰게 한다.
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+  valkey:
+    image: valkey/valkey:9.2
+    environment:
+      VALKEY_PASSWORD: ${VALKEY_PASSWORD:?VALKEY_PASSWORD is required (see deploy/docker/.env.example)}
+      # valkey-cli가 이 변수를 비밀번호로 사용한다 (헬스체크에서 -a 인자로 노출하지 않기 위함).
+      VALKEYCLI_AUTH: ${VALKEY_PASSWORD:?VALKEY_PASSWORD is required (see deploy/docker/.env.example)}
+    # 관리형 서비스처럼 로컬에서도 인증을 요구해 연결 코드가 환경마다 갈라지지 않게 한다.
+    command: ["sh", "-c", "exec valkey-server --requirepass \"$$VALKEY_PASSWORD\""]
+    ports:
+      - "127.0.0.1:${VALKEY_PORT:-6379}:6379"
+    volumes:
+      - valkey-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "valkey-cli ping | grep -q PONG"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
+  valkey-data:

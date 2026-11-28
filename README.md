@@ -42,7 +42,7 @@ Client ──HTTP──▶ Login Server ──▶ PostgreSQL (계정)
 | 클라이언트 ↔ 서버 통신 | HTTP, TCP 소켓 |
 | 서버 ↔ 서버 통신 | gRPC, TCP 소켓 |
 | 통신 규격 | **Protocol Buffers** (모든 통신 메시지 정의를 `.proto`로 일원화) |
-| 데이터베이스 | PostgreSQL (영속 데이터), Redis (세션 / 캐시 / Pub/Sub) |
+| 데이터베이스 | PostgreSQL 19 (영속 데이터), Valkey 9.2 — Redis 호환 (세션 / 캐시 / Pub/Sub) — [ADR 0002](docs/adr/0002-datastores-postgresql-valkey.md) |
 | 메시지 큐 | 필요 시 요구 스펙에 따라 **Redis 큐(Streams)** 또는 **Kafka** 도입 |
 | 배포 | Docker (서비스별 이미지 + Docker Compose) |
 | 빌드 | 우선 로컬 빌드 후 테스트 → 이후 CI 등 다른 방식 검토 |
@@ -91,7 +91,7 @@ my-game-server/
 
 ## 5. 빌드 & 배포
 
-- **현재**: 각 서버를 로컬에서 빌드하고, Docker Compose로 PostgreSQL / Redis와 함께 띄워 테스트합니다.
+- **현재**: 각 서버를 로컬에서 빌드하고, Docker Compose로 PostgreSQL / Valkey와 함께 띄워 테스트합니다.
 - **향후**: CI 파이프라인(예: GitHub Actions)과 이미지 레지스트리를 이용한 빌드/배포 방식을 검토합니다.
 
 자세한 개발 규칙과 명령어는 [AGENTS.md](AGENTS.md)를 참고하세요.

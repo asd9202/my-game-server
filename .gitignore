@@ -119,3 +119,9 @@ _ReSharper*/
 # ===== OS =====
 .DS_Store
 Thumbs.db
+
+# ===== 환경 파일 (AGENTS.md §7.1) =====
+# 실제 값이 담긴 .env는 커밋하지 않고, 자리표시자만 담은 .env.example만 커밋한다.
+.env
+.env.*
+!.env.example
