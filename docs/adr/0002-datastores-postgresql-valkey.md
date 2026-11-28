@@ -25,7 +25,8 @@ Redis는 7.4부터 라이선스가 오픈소스(BSD)가 아닌 RSAL/SSPL로 바�
 | 키-값 저장소 | Valkey (Redis 프로토콜 호환) | 9.2 | `valkey/valkey:9.2` |
 
 - 이미지 태그는 **메이저(PostgreSQL) / 메이저.마이너(Valkey)까지 고정**하고 패치 버전은 따라간다. `latest`는 쓰지 않는다.
-- 모든 환경(local, dev, qa, prod)에서 **같은 메이저 버전**을 쓴다. 관리형 서비스를 쓸 때도 엔진 버전을 이에 맞춘다.
+- 모든 환경(local, dev, qa, prod)에서 **고정한 단위까지 같은 버전**을 쓴다. PostgreSQL은 메이저(19), Valkey는 메이저.마이너(9.2)가 같아야 한다.
+  관리형 서비스를 쓸 때도 엔진 버전을 이에 맞춘다. (Valkey는 마이너 버전에서도 기능·기본값이 바뀌므로 메이저만 같아서는 부족하다)
 - 문서와 코드에서 말하는 "Redis"(키 규칙 §5.2, `StackExchange.Redis`, redis-plus-plus 등)는 Redis 프로토콜을 뜻하며, 실제 서버는 Valkey다.
 
 ### 환경별 구성
@@ -42,8 +43,11 @@ Redis는 7.4부터 라이선스가 오픈소스(BSD)가 아닌 RSAL/SSPL로 바�
 
 - 접속 정보(계정, 비밀번호, DB 이름)는 `deploy/docker/.env`에서 읽는다. 저장소에는 자리표시자만 담은 `.env.example`만 커밋한다.
   값이 없으면 `${VAR:?메시지}` 문법으로 Compose가 바로 실패한다.
+  `POSTGRES_USER`/`POSTGRES_PASSWORD`/`POSTGRES_DB`는 볼륨이 비어 있을 때(최초 초기화)만 적용된다는 점에 주의한다.
 - 포트는 `127.0.0.1`에만 바인딩해 같은 네트워크의 다른 기기에서 접근하지 못하게 한다.
 - 로컬에서도 Valkey에 비밀번호(`requirepass`)를 건다. 관리형 서비스는 보통 인증을 요구하므로 연결 코드가 환경마다 갈라지지 않게 하기 위해서다.
+- 컨테이너는 non-root로 실행한다(AGENTS.md §8). 공식 이미지의 진입 스크립트가 권한을 낮추므로, `command`를 바꿀 때 이 동작을 우회하지 않게 한다.
+- 헬스체크는 클라이언트와 같은 경로(TCP)로 확인한다. PostgreSQL은 `pg_isready -h 127.0.0.1`을 쓴다.
 - 데이터는 named volume에 저장한다. PostgreSQL 18 이상 이미지는 데이터 경로가 `/var/lib/postgresql/<메이저>/docker`로 바뀌었으므로 볼륨은 `/var/lib/postgresql`에 마운트한다.
 
 ## 이유
