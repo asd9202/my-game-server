@@ -22,6 +22,7 @@
 | ASP.NET Core API 스타일 | **결정: Minimal API** ([ADR 0001](docs/adr/0001-aspnetcore-minimal-api.md)) | ~~Controller~~ |
 | .NET 데이터 접근 방식 | 미정 | Npgsql + Dapper, EF Core |
 | C++ PostgreSQL 클라이언트 (채팅 서버에 DB가 필요해질 때) | 미정 | libpqxx, libpq |
+| 데이터 저장소 버전·환경별 구성 | **결정: PostgreSQL 19 + Valkey 9.2, 로컬은 Docker Compose** ([ADR 0002](docs/adr/0002-datastores-postgresql-valkey.md)) | ~~Redis~~ |
 | DB 마이그레이션 도구 | 미정 | Flyway(현재 `V0001__` 명명과 호환), 단순 SQL 스크립트 실행 |
 | 게이트웨이 토큰 검증 방식 | 미정 | Login Server gRPC 호출, Redis 직접 조회 |
 | 메시지 큐 | 필요 시 도입 | Redis Streams(경량·단순), Kafka(대용량·재처리·다수 컨슈머) |
@@ -41,6 +42,8 @@
 | Login Server | `services/login-server` | C# / ASP.NET Core (.NET 10) | HTTP (REST, protobuf 바디) | gRPC 서버 (토큰 검증 등) | PostgreSQL, Redis |
 | Gateway Server | `services/gateway-server` | C++26 | TCP 소켓 | gRPC 클라이언트, TCP 소켓 | Redis |
 | Chat Server | `services/chat-server` | C++26 | 없음 (게이트웨이 경유) | gRPC 서버, TCP 소켓 | Redis (+ 필요 시 PostgreSQL) |
+
+저장소: 문서에서 말하는 "Redis"는 Redis 프로토콜을 뜻하며, 실제 서버는 호환 포크인 **Valkey 9.2**입니다. PostgreSQL은 **19**를 사용합니다 ([ADR 0002](docs/adr/0002-datastores-postgresql-valkey.md)).
 
 언어 분담 원칙: **HTTP 웹 서버는 ASP.NET Core**, **실시간 TCP 소켓 서버는 C++** 로 작성합니다. 새 서비스도 이 기준을 따릅니다.
 
@@ -251,7 +254,9 @@ my-game-server/
 
 ### 6.2 인프라(로컬)
 ```bash
-docker compose -f deploy/docker/docker-compose.yml up -d postgres redis
+cp deploy/docker/.env.example deploy/docker/.env   # 최초 1회, 값 수정 (.env는 커밋 금지)
+docker compose -f deploy/docker/docker-compose.yml up -d postgres valkey
+docker compose -f deploy/docker/docker-compose.yml ps   # 두 서비스가 healthy인지 확인
 ```
 
 ### 6.3 C++ (Gateway / Chat Server)
