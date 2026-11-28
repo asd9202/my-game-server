@@ -46,6 +46,8 @@ Redis는 7.4부터 라이선스가 오픈소스(BSD)가 아닌 RSAL/SSPL로 바�
   `POSTGRES_USER`/`POSTGRES_PASSWORD`/`POSTGRES_DB`는 볼륨이 비어 있을 때(최초 초기화)만 적용된다는 점에 주의한다.
 - 포트는 `127.0.0.1`에만 바인딩해 같은 네트워크의 다른 기기에서 접근하지 못하게 한다.
 - 로컬에서도 Valkey에 비밀번호(`requirepass`)를 건다. 관리형 서비스는 보통 인증을 요구하므로 연결 코드가 환경마다 갈라지지 않게 하기 위해서다.
+  비밀번호는 `command` 인자가 아니라 `VALKEY_EXTRA_FLAGS` 환경 변수로 넘긴다. 명령줄 인자는 같은 호스트의 모든 사용자가 프로세스 목록으로 볼 수 있기 때문이다.
+  이 변수는 단어 분리되므로 비밀번호에 공백·글롭 문자를 쓰지 않는다.
 - 컨테이너는 non-root로 실행한다(AGENTS.md §8). 공식 이미지의 진입 스크립트가 권한을 낮추므로, `command`를 바꿀 때 이 동작을 우회하지 않게 한다.
 - 헬스체크는 클라이언트와 같은 경로(TCP)로 확인한다. PostgreSQL은 `pg_isready -h 127.0.0.1`을 쓴다.
 - 데이터는 named volume에 저장한다. PostgreSQL 18 이상 이미지는 데이터 경로가 `/var/lib/postgresql/<메이저>/docker`로 바뀌었으므로 볼륨은 `/var/lib/postgresql`에 마운트한다.
